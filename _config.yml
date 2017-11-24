@@ -9,8 +9,8 @@ url: "" # the base hostname & protocol for your site, e.g. http://example.com
 site-twitter: #if your site has a twitter account, enter it here
 
 # Author Settings
-author: 손지영 # add your name
-author-img: showhisper.jpg # add your photo
+author: showhisper # add your name
+author-img: showhisper.png # add your photo
 about-author: 코드를 정리해보고싶다.. # add description
 twitter: # add your Twitter handle
 facebook: JiyoungS0N # add your Facebook handle

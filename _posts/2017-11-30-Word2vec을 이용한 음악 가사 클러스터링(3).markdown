@@ -12,19 +12,22 @@ wmd대하여 알아 볼 생각이다.<br />
 
 ## wmd(word mover's distace)란
 간단하게 이야기 하면, 공통된 단어가 없는 경우에도 두 문장 간의 거리를 평가할 수 있는 방법이다. <br />
-아래와 같이 공동된 단어가 없을 경우 관련 단어를 일치 시키면서 두 문장간의 유사성을 측정한다.
+아래와 같이 공동된 단어가 없을 경우 관련 단어를 일치 시키면서 두 문장간의 유사성을 측정할 수 있다.
 ![wmd]({{site.baseurl}}/assets/img/word2vec_project/3_2.png) <br />
 ##### 이미지출처: http://proceedings.mlr.press/v37/kusnerb15.pdf<br />
 
-먼저 wmd를 이용하기 위해서는 다음과 같은 가정이 필요하다.
+먼저 wmd를 이용하기 위해서는 word embedding 단어 사전이 필요하다.
 - $$n$$개의 단어로 구성된 사전<br />
   - ex) word2vec의 embedding matirx $$X \in R^{dxn}$$
   - $$x_i \in R^d$$: d차원 공간에 있는 $$i$$번째 column
-
-- text documents: 정규화된 bag-of words 벡터, $$d \in R^n$$
+  - text documents: 정규화된 bag-of words 벡터, $$d \in R^n$$
   - 단어 $$i가 c_i$$번 나타나면 $$d_i= \frac{c_i}{\sum_{j=1}^{n}c_j}$$로 표현한다.
 
-1) nBOW representation
+* * * * *
+[word mover's distance] !논문을 정리해보자!
+* * * * *
+
+### 1) nBOW representation
 >다음 두 문장을 비교해 보자. <br />
 S1 - Obama speaks to the media in Illinois <br />
 S2 - The President greets the press in Chicago <br />
@@ -32,7 +35,7 @@ S2 - The President greets the press in Chicago <br />
 둘은 유사한 의미임에도 불구하고 다른 문장이라고 인식한다는 한계점을 가지고 있다.
 
 
-2) Word travel cost
+### 2) Word travel cost
 
 따라서, <br />
 wmd의 목표는 개별 단어 쌍(ex. President 와 Obama)간의 의미상 유사성을 문서 거리 측정에서 통합하는 것이다.
@@ -41,7 +44,7 @@ wmd의 목표는 개별 단어 쌍(ex. President 와 Obama)간의 의미상 유�
 $$c(i, j) = ||x_i-x_j||_2$$
 
 
-3) Document distacance
+### 3) Document distacance
 두 단어 사이의 `travel cost`은 두 문서간의 거리를 측정하는데 사용된다.
 
   * $$d$$와 $$d'$$: docuemnts
@@ -52,13 +55,13 @@ $$c(i, j) = ||x_i-x_j||_2$$
        $$\sum_j T_{ij} = d_i$$ 와 $$\sum_i T_{ij} = d'_j$$를 보장한다.
   - 두 문서간의 거리를 모든 단어 $$d$$에서 $$d'$$로 이동시키는 최소 누적 비용을 $$\sum_{i, j} T_{ij}c(i, j)$$로 정의할 수 있다.
 
-4) Transportation problem
+### 4) Transportation problem
 $$d$$에서 $$d'$$로 이동하는 최소 누적 비용은 아래의 linear program과 같다. <br />
 ![wmd 식]({{site.baseurl}}/assets/img/word2vec_project/3_3.png) <br />
 ##### 이미지출처: https://chara.cs.illinois.edu/sites/fa16-cs591txt/pdf/Kusner-2015-ICML.pdf<br />
 위의 최적화는 [earth mover's distance]에서 사용되었기 때문에, word mover's distance라고 함.
 
-5) Visualization<br />
+### 5) Visualization<br />
 ![wmd 식2]({{site.baseurl}}/assets/img/word2vec_project/3_4.png) <br />
 ##### 이미지출처: https://chara.cs.illinois.edu/sites/fa16-cs591txt/pdf/Kusner-2015-ICML.pdf<br />
 위의 사진의 설명은 다음과 같다.

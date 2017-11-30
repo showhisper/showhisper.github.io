@@ -1,0 +1,98 @@
+---
+layout: post
+title: word2vec을 이용한 음악 가사 클러스터링(3) #3. wmd
+date: 2017-11-30 20:11:00 +0900
+description: You’ll find this post in your `_posts` directory. Go ahead and edit it and re-build the site to see your changes. # Add post description (optional)
+img: word2vec_project_3.png
+tags: [word2vec, 논문, 준비, 제발, wmd]
+---
+wmd대하여 알아 볼 생각이다.<br />
+인터넷에 치면 대량살상무기라고 나온다 (ㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋㅋ) <br />
+여기에서 알아볼 wmd는 저건 아니고, [word mover's distance]를 이야기 한다.
+
+## wmd(word mover's distace)란
+간단하게 이야기 하면, 공통된 단어가 없는 경우에도 두 문장 간의 거리를 평가할 수 있는 방법이다. <br />
+아래와 같이 공동된 단어가 없을 경우 관련 단어를 일치 시키면서 두 문장간의 유사성을 측정한다.
+![wmd]({{site.baseurl}}/assets/img/word2vec_project/3_2.png) <br />
+##### 이미지출처: http://proceedings.mlr.press/v37/kusnerb15.pdf<br />
+
+먼저 wmd를 이용하기 위해서는 다음과 같은 가정이 필요하다.
+- $$n$$개의 단어로 구성된 사전<br />
+  - ex) word2vec의 embedding matirx $$X \in R^{dxn}$$
+  - $$x_i \in R^d$$: d차원 공간에 있는 $$i$$번째 column
+
+- text documents: 정규화된 bag-of words 벡터, $$d \in R^n$$
+  - 단어 $$i가 c_i$$번 나타나면 $$d_i= \frac{c_i}{\sum_{j=1}^{n}c_j}$$로 표현한다.
+
+1) nBOW representation
+>다음 두 문장을 비교해 보자. <br />
+S1 - Obama speaks to the media in Illinois <br />
+S2 - The President greets the press in Chicago <br />
+
+둘은 유사한 의미임에도 불구하고 다른 문장이라고 인식한다는 한계점을 가지고 있다.
+
+
+2) Word travel cost
+
+따라서, <br />
+wmd의 목표는 개별 단어 쌍(ex. President 와 Obama)간의 의미상 유사성을 문서 거리 측정에서 통합하는 것이다.
+
+두 단어 $$i와 j$$의 거리는 유클리디안 거리로 측정되며, 공식은 아래와 같다.<br />
+$$c(i, j) = ||x_i-x_j||_2$$
+
+
+3) Document distacance
+두 단어 사이의 `travel cost`은 두 문서간의 거리를 측정하는데 사용된다.
+
+  * $$d$$와 $$d'$$: docuemnts
+  - $$d$$에 있는 각각의 단어 $$i$$가 전체적이던 부분적으로 $$d'$$에 있는 어떤 단어로 변화하도록 한다.
+      - $$T \in R^{nxn}$$: flow matrix
+      - $$T_{ij} \geq 0$$ : $$d$$의 word $$i$$가 $$d'$$의 word $$j$$로 얼마나 travel 했는가를 나타낸다.
+      - $$d$$가 $$d'$$로 완전히 변환하기 위해, <br />
+       $$\sum_j T_{ij} = d_i$$ 와 $$\sum_i T_{ij} = d'_j$$를 보장한다.
+  - 두 문서간의 거리를 모든 단어 $$d$$에서 $$d'$$로 이동시키는 최소 누적 비용을 $$\sum_{i, j} T_{ij}c(i, j)$$로 정의할 수 있다.
+
+4) Transportation problem
+$$d$$에서 $$d'$$로 이동하는 최소 누적 비용은 아래의 linear program과 같다. <br />
+![wmd 식]({{site.baseurl}}/assets/img/word2vec_project/3_3.png) <br />
+##### 이미지출처: https://chara.cs.illinois.edu/sites/fa16-cs591txt/pdf/Kusner-2015-ICML.pdf<br />
+위의 최적화는 [earth mover's distance]에서 사용되었기 때문에, word mover's distance라고 함.
+
+5) Visualization<br />
+![wmd 식2]({{site.baseurl}}/assets/img/word2vec_project/3_4.png) <br />
+##### 이미지출처: https://chara.cs.illinois.edu/sites/fa16-cs591txt/pdf/Kusner-2015-ICML.pdf<br />
+위의 사진의 설명은 다음과 같다.
+  1. 불용어를 지워 각 단어만 남기고 $$d_i$$는 아래와 같다.<br />
+  - $$D_0$$: President, greets, press, Chicago, $$d_i = 0.25$$
+  2. $$D_0$$에서 문장 $$D_1$$ word $$i$$와 $$D_2$$의 word $$j$$의 화살표들은 거리 $$T_{ij}c(i, j)$$에 대한 기여도로 표시 된다.
+    <br /> `word를 유사한 word로 "moves" 시킨다!!`
+  - Illinois가 Chicago로 변환되는 것이 Japan이 Chicago로 변환되는 것 보다 값이 적은 이유는 <br />word2vec embedding에서 Japan보다 Illinois가 더 가깝기 때문이다.
+
+  3. 결과적으로 <br />
+  $$D_1$$과 $$D_2$$는 $$D_0$$와 비교했을때, <br />
+  `공통된 단어가 없기 때문에 같은 bag-of-words/TF-IDF 거리를 같는다.`
+  <br /> 하지만, 둘의 유사도 값은 다르게 나오지롱!!!!!!
+  - $$D_0$$과 $$D_1$$: 1.07
+  - $$D_0$$과 $$D_2$$: 1.63
+
+  4. $$D_3$$: 단어의 수가 일치하지 않을때 경우를 나타내는데,
+  - $$D_3$$의 term weight $$d_j= 0.33$$이다.
+  - 이 경우에는 추가적인 화살표 방향이 다른 유사한 단어로 나타날 수 있다.
+  - 긴 문서에 여러 유사한 단어가 포함될 수 있기 떄문에, 거리가 늘어 난다.
+  <br />(그래도 $$D_2$$와 비교해보면 더 가까운 유사도가 나왔기 때문에 괘찮은 것같당 - 개인적인 생각)
+
+  5. 계산 비용같은 경우는 [word mover's distance]를 참고하면 되겠다.
+
+#### 오늘의 한줄 느낌:
+- 후 개 머리아프다. 이정도면 대충 컨셉은 이해한것 같다! BOOM!
+- 이제 대충 word2vec과
+- wmd에 대하여 알았으니,
+- 다음에는 이 2가지를 활용하여 `음악 가사 유사도`를 측정하여 `클러스터링`을 해보자
+
+#### 참조
+- https://www.youtube.com/watch?v=NesumaeN1xE
+- https://chara.cs.illinois.edu/sites/fa16-cs591txt/pdf/Kusner-2015-ICML.pdf
+- https://markroxor.github.io/gensim/static/notebooks/WMD_tutorial.html
+
+[earth mover's distance]: https://en.wikipedia.org/wiki/Earth_mover%27s_distance
+[word mover's distance]: https://chara.cs.illinois.edu/sites/fa16-cs591txt/pdf/Kusner-2015-ICML.pdf

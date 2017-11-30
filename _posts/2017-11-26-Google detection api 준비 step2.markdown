@@ -27,7 +27,7 @@ $git clone https://github.com/tensorflow/models
 {% endhighlight %}
 
   * Protocol Buffer Compile
-  다음 프로토콜 버퍼를 사용하기 위해서는 protoc로 proto파일을 컴파일 한다</br >
+  다음 프로토콜 버퍼를 사용하기 위해서는 protoc로 proto파일을 컴파일 한다
   Object Detection API를 설치한 디렉토리에서 models 디렉토리에 들어가 다음 명령어를 수행하자.
   {% highlight ruby %}
   # models/research/

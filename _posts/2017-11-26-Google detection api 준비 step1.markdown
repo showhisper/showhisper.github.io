@@ -10,7 +10,7 @@ tags: [Google, detection, api, 준비]
 ## Google Detection api 설치
   >Google Detection api를 사용하기 위해서는
   * python 2.7 과 tensorflow이 설치 되어야 한다.
-  * google api를 사용하려면 protocol buffer라는 것을 이용해야 하는데, <br />오늘은 protocol buffer가 뭔지 살펴 보도록하자!
+  * google api를 사용하려면 protocol buffer라는 것을 이용해야 하는데, 오늘은 protocol buffer가 뭔지 살펴 보도록하자!
 
 #### 1. Protocol Buffer 설치
 Object detection api는 내부적으로 protocol buffer를 사용하기 때문에, 설치해주자.
@@ -20,7 +20,7 @@ Object detection api는 내부적으로 protocol buffer를 사용하기 때문�
  - C++, C#, Go, Java, Python, Object C, Javascrpit, Ruby 등을 지원한다.
 <br />직렬화란 데이터를 파일로 저장하거나 네트워크로 전송하기 위하여 바이너리 스트림 형태로 저장하는 것
  - 하나의 파일에 최대 64M까지 지원
- - JSON 파일을 프로토콜 버퍼 파일 포맷으로 전환 가능하고 <br /> 프로토콜 버퍼 파일을 JSOn으로 전환가능하다.
+ - JSON 파일을 프로토콜 버퍼 파일 포맷으로 전환 가능하고 프로토콜 버퍼 파일을 JSON으로 전환가능하다.
 
 * 직접 설치 하고 싶다면... [github.com/google/protobuf/tree/master/python]를 참고하자!
 * 다른 버전도 [github.com/google/protobuf/releases] 요기있다.

@@ -1,0 +1,161 @@
+---
+layout: post
+title: word2vec을 이용한 음악 가사 클러스터링(2) #2. word2vec
+date: 2017-11-30 18:20:00 +0900
+description: You’ll find this post in your `_posts` directory. Go ahead and edit it and re-build the site to see your changes. # Add post description (optional)
+img: word2vec_project_2.png
+tags: [word2vec, 논문, 준비, 제발, wmd]
+---
+word2vec대하여 알아 볼 생각이다.
+
+## word2vec
+word2vec은 간단하게 말하자면, [2013년 구글이 제안한 방법]을 구현한 알고리즘으로 word embedding 학습 모형이다. 먼저 word2vec을 알아 보기전에 word2vec의 전신이 되는 아이들 부터 살펴보도록 해보자.
+> word embedding?
+우리가 다루어야할 음악 가사는 NLP(Natural Language Processing,자연어 처리)로 컴퓨터가 인간이 사용하는 언어를 이해하고 분석할 수 있게 하는 분야를 이야기한다. 컴퓨터는 단어 자체를 `사람처럼` 개념적인 차이로 이해하는 것이 아니다.
+컴퓨터가 어떤 단어인지 인지 할 수 있게 하기 위해서는 수치적인 방식으로 단어를 나타내 주여야 한다. 수화를 통해 단어의 개념적인 차이를 나타내기가 어려워, 기존의 NLP에서는 `one-hot encoding`를 많이 이용했다. 그런데, one-hot encdoing에서도 단어의 본질적으로 다른 단어와 차이점을 가지는지 알수 없다는 단점이 존재했다.
+
+단어 자체가 가지는 의미 자체를 다차원의 공간에서 벡터화하자! <br />
+`단어의 이미 자체를 벡터화할 수 있게 된다면?`<br />
+
+![단어 추론 이미지]({{site.baseurl}}/assets/img/word2vec_project/2_1.png) <br />
+위의 사진은 [단어 추론]에서 단어를 실험했을때, 나온 결과 예시이다. <br />
+[단어 추론] 이 웹사이트는 나무위키와 한국 위키백과를 이용하여 word2vec에 학습시켜, 단어들간의 관계를 찾아 볼 수 있게 만들어 놓은 사이트로 가보면 여러가지로 재밋는 것을 해볼수 있다!  
+
+### word vector
+ word embedding 관련 학습들은 기본적으로 [Distributional Hypothesis]라는 가정에 하에 이루어진다.  
+`비슷한 분포를 가진 단어들은 비슷한 의미를 가진다.`  
+비슷한 분포를 가졌다 = 단어들이 같은 문맥에서 등장한다. <br />
+- NNLM(Neural Net Language model) <br />
+  2003년 bengio에 의해 소개된 NNLM은 연속적인 단어가 주어졌을 때, 이전 단어로 현재 타깃 단어를 예측하는 Predictive based model 방식의 벡터화 방법이다.
+
+  [NNLM] 은 Input Layer, Projection Layer, Hidden Layer, Output Layer로 이루어진 Neural Network이다.
+  1. 현재 보고 있는 단어 이전의 단어들 $$N$$개를 one-hot encoding으로 벡터화 시킨다.
+  2. 사전크기를 $$V$$라고 하고 Projection Layer의 크기를 $$P$$라고 했을때, 각각의 벡터들은 $$VxP$$ 크기의 Projection Matrix에 의해 다음 레이어로 넘어가게 된다.
+  3. Projection Layer의 값을 input이라 생각하고, 크기 $$H$$짜리 Hidden Layer를 거쳐 Output Layer에서 `각 단어들이 나올 확률`을 계산한다.
+  4. 이를 실제 단어의 one-hot encoding 벡터와 비교하여 에러를 계산하고
+  5. back-propagation 해서 네트워크의 weigh들을 최적화 해나가는 것
+  6. 최종적으로 사용하게 될 단어의 벡터들은 Projection Layer의 값들로서 각 단어들의 크기 $$P$$의 벡터가 된다.
+
+  NNLM의 단점
+  - 단점1: 학습 셋의 단어 수에 비례하여 학습 성능이 매우 느리다.
+  - 단점2: 몇개의 단어를 볼건지에 대한 파라미터 $$N$$이 고정되어있고, 정해주어야 한다.
+  - 단점3: 이전의 단어들에 대해서만 신경쓸 수 있고, 현재 보고있는 단어의 앞에 있는 단어는 고려하지 못한다.
+
+
+- RNNLM <br />
+  NNLM을 Recurrent Neural network의 형태로 변형한 것<br />
+  기본적으로 Projection Layer 없이 Input Layer, Hidden Layer, Output Layer로만 구성되는 대신, Hidden Layer에 Recurrent한 연결이 있어 이전 시간의 Hidden Layer의 입력이 다시 입력되는 형식으로 구성되어 있다.
+  1. NNLM과 달리 몇개의 단어인지 정해줄 필요가 없다.
+  2. 학습을 진행하면서 Recurrent한 부분이 일종의 Short-Term 메모리의 역할을 하면서 이전 단어들을 보는 효과를 낸다.
+  3. RNNLM은 NNLM보다 연산량이 적다.
+
+  RNNLM의 단점
+  - 단점: 굉장히 많은 데이터가 필요하다.
+
+### 드디어 word2vec
+기존의 Neural Net기반 학습방법과 비슷하지만, 계산량을 엄청나게 줄여서 기존의 방법에 비해 몇배 이상 빠른 학습을 가능캐 하는 word embedding 모델로 2가지가 존재한다.
+
+#### 1) CBOW(Continuous Bag of Words)
+CBOW는 주어진 단어들을 가지고 빈칸 단어를 추론한다.<br />
+예를 들면 아래 사진의 주변 단어들을 이용해 네모네모를 찾는 것과 같다.<br />
+![단어 추론 이미지]({{site.baseurl}}/assets/img/word2vec_project/2_2.png) <br />
+##### 이미지출처:  http://www.masterkorean.com/community/koTogetherView.asp?tmpSeq=29&gotoPage=1&
+
+CBOW는 Input Layer, Projection Layer, Output Layer로 이루어져있다.
+- Input Layer에서 Projection layer로 갈때는 모든 단어들이 공통적으로 사용하는 $$VxN$$($$N$$은 Projection Layer의 길이 = 사용할 벡터의 길이) 크기의 `Projection Matrix W`가 있고 Projection Layer에서 Output Layer로 갈때는 $$NxV$$ 크기의 `weight Matrix W`가 있다.
+
+1. Input Layer에서는 NNLM모델과 똑같이 단어를 one-hot encdoing으로 넣어주고,
+2. 여러개의 단어를 각각 Projection 시킨후, 그 벡터들의 평균을 구해서 Projection Layer에 보낸다.
+3. 그 뒤 weight Matrix를 곱해서 Output Layer에 보내고
+4. Softmax 계산을 한 후,
+5. 이 결과를 진따 단어의 one-hot encoding과 비교하여 error를 계산한다.
+
+
+
+#### 2) Skip-gram
+Skip-gram은 현재 주어진 단어 하나를 가지고 주위에 등장하는 나머지 몇 가지의 단어들의 등장 여부를 유추한다.<br /> `가까이에 있는 단어일 수록 현재 단어와 관계가 더 많다.`<br /> (CBOW의 반대의 경우라고 생각하면 된다.) 멀리 떨어진 단어를 낮은 확률로 선택하는 방법을 사용한다.
+
+#### 3) NCE(Noise-Contrastive Estimation)
+- CBOW와 Skip-gram 모델에서 사용하는 비용 계산 알고리즘
+- 전체 데이터셋에 대해 softmax함수를 적용하는 것이 아니라, 샘플링으로 추출한 일부에 대해서만 적용한다.
+- k개의 대비되는(contrastive) 단어들을 noisr distribution에 구해서 평균을 구하는 것
+- 일반적으로 단어 갯수가 많을 때 사용
+
+#### 4) 계산량을 줄이기 위한 방법에 대하여
+Output Layer에서 softmax 계산을 하기 위해서는 각 단어에 대해 전부 계산을 해서 Normalization을 해주어야 하고, 이애 따라 추가적인 연산이 엄~~청 나게 늘어나게 된다(단어의 수가 짱짱 많으니까요!). 이를 방지 하기 위해서 2가지의 방법을 제시하고 있다.
+
+#### (1) Hierarchical Softmax
+softmax function 대신 보다 빠르게 계산가능한 [multinomial distribution] function을 사용하는 방법<br />
+![Hierarchical sotfmax]({{site.baseurl}}/assets/img/word2vec_project/2_3.png) <br />
+##### 이미지출처: https://blog.acolyer.org/word2vec-hierarchical-softmax/
+- 빈번하게 출현하지 않는 단어들에게 유리
+각 단어들을 leaves로 가지는 binary tree를 하나 만들어 놓은 다음, 해당하는 단어의 학률을 계산할때, root에서 부터 해당 leaf로 가는 path를 따라서 확률을 곱해가는 식으로 해당 단어가 나올 최종 확률을 계산한다.
+
+- $$L(w)$$:트리의 root에서 단어 leaf $$w$$ 까지의 path의 길이
+- $$n(w, i)$$: 트리의 root에서 단어 leaf $$w$$ 까지 가는 길에 놓여있는 $$i$$ 번째 노드.<br />
+  $$n(w, 1)$$ => root <br /> $$n(w, L(w))$$ => $$w$$
+- $$ch(n(w,i)): n(w,i)$$ 의 자식 노드 중 왼쪽
+
+input word가 $$w_i$$ 일때, output word가 $$w$$일때, <br />
+조건부 확률 $$P(w|w_i)$$를 maximize 하기 위해 $$-log$$를 위해서 objective function이 완성될 것이다.
+
+#### $$P(w|w_i)$$를 구하는 방법
+root에서부터 단어 $$w까지 가는 길에 놓여있는 노드에 딸려 있는 벡터와 단어 leaf w_i와 연관된 벡터 v_{wi}$$를 내적하고, sigmoid 함수를 적용하여 확률로 만들고 그 확률을 곱하면서 leaf까지 내려가면 된다.<br />
+![Hierarchical sotfmax2]({{site.baseurl}}/assets/img/word2vec_project/2_4.jpg) <br />
+##### 이미지출처: http://dalpo0814.tistory.com/7
+
+- $$[x]$$: $$x가 true일 경우 1, false일 경우 -1$$을 반환하는 함수
+- Hierarchical softmax를 사용하게 되면 $$W'$$ matrix를 사용하지 않고, <br />
+  $$V-1$$개의 internal node가 각각의 길이 $$N$$짜리 weight vector를 가지게 된다. <br />
+  이를 $$v'_i$$라고 하고 학습에서 update한다.
+- $$h$$: Hidden Layer 값 벡터
+- $$sigma(x)$$: sigmoid function $$1/(1+exp(-x))$$
+
+word2vec 논문에서는 사용빈도가 높은 단어에 대해 짧은 경로를 부여하는 binary Huffman Tree를 사용했다. <br />
+Huffman Tree를 사용할 경우 자주등장하는 단어들 보다 짧은 path로 도달할 수 있기 때문에 전체적인 계산량이 더 낮아지는 효과를 볼 수 있다!
+
+
+#### (2) Negative Sampling
+Negative Sampling은 Hierarchical Softmax의 대체재로 사용할수 있는 방법<br />
+`Softmax에서 너무 많은 단어들에 대해 계산을 해야하니, 몇개만 샘플링해서 계산하면 안될까?`에서 출발한다.
+- 전체 단어들에 대해 계산을 하는 대신, 그 중에서 일부만 뽑아서 softmax계산을 하고 Normalization을 한다.
+- positive sample = 실제 target으로 사용하는 단어의 경우 반드시 계산
+- negative sample = positive sample을 제외한 나머지 <br />
+`negative sample을 어떻게 뽑느냐`에 따라 성능이 달라진다.
+-> 보통은 실험적으로 결정한다.
+
+word2vec의 경우 기존과는 다른 Error Function을 정의해서 사용한다. <br />
+![negative sampling]({{site.baseurl}}/assets/img/word2vec_project/2_5.png) <br />
+##### 이미지출처: http://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality.pdf
+위와 같은 목표를 maximize하도록 weight를 조정한다. [negative sampling]에 가면 확인 할 수 있다.
+>1. 보고있는 단어 $$w$$와 목표로 하는 단어 $$c$$를 뽑아 $$(w, c)$$로 둔다.
+2. positive sample일 경우: 이 $$(w, c)$$조합이 corpus에 있을 확률
+  negative sample일 경우: $$(w, c)$$조합이 이 corpus에 없을 확률
+3. 각각을 더하고 $$log$$를 취해 정리하면 위와 같은 식이 된다.
+
+자세한 내용은 [negative sampling 정리]에서 확인하는게 좋을 것 같다.. 어렵넹 부들
+- 빈번하게 출연하는 단어들에게 좀 더 적합하다.
+
+
+#### 오늘의 한줄 느낌:
+NCE에 대하여 다음에 더 자세히 공부해 봐야겠다. <br />
+보면 볼수록 어렵다. word2vec ㅠㅠ너란노무 시킹...
+
+#### 참조
+- http://papers.nips.cc/paper/5021-distributed-representations-of-words-and-phrases-and-their-compositionality.pdf
+- [cs224n-2017-lecture2]
+- http://mccormickml.com/2016/04/19/word2vec-tutorial-the-skip-gram-model/
+- http://dalpo0814.tistory.com/7 https://tensorflowkorea.gitbooks.io/tensorflow-kr/content/g3doc/tutorials/word2vec/
+- https://brunch.co.kr/@goodvc78/16
+- https://shuuki4.wordpress.com/2016/01/27/word2vec-관련-이론-정리/
+- Efficient Estimation of Word Representations in Vector Space
+- https://www.slideshare.net/moraesfelipe/representation-learning-of
+
+[negative sampling 정리]: http://dalpo0814.tistory.com/6?category=232263
+[negative sampling]: https://arxiv.org/pdf/1402.3722.pdf
+[multinomial distribution]: https://en.wikipedia.org/wiki/Multinomial_distribution
+[cs224n-2017-lecture2]: http://web.stanford.edu/class/cs224n/lectures/cs224n-2017-lecture2.pdf
+[NNLM]: http://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf
+[Distributional Hypothesis]: https://en.wikipedia.org/wiki/Distributional_semantics#Distributional_Hypothesis
+[2013년 구글이 제안한 방법]: https://arxiv.org/pdf/1301.3781.pdf
+[단어 추론]: http://w.elnn.kr/search/
